@@ -9,9 +9,9 @@ import requests
 import numpy as np
 
 # Ваш токен Telegram-бота
-TOKEN = 'Your_telegram_api'
+TOKEN = 'telegram_api'
 
-api_weather = 'your_api_weather'
+api_weather = 'open_weather_api'
 url = 'http://api.openweathermap.org/data/2.5/weather'
 
 # Название файла с координатами городов
@@ -65,7 +65,34 @@ def back_to_city(message):
 @bot.message_handler(commands=['help'])
 def help_message(message):
     bot.send_message(message.chat.id,
-                     "Пока что это прикол, инфа будет позже")
+                     "Если вы хотите использовать графики, то можно будет сформировать их только для городов России\n"
+                     "Если же вы хотите сделать информацию в виде текста, то сможете сделать это для почти любого "
+                     "населенного пункта мира\n\n"
+                     "~Графики могут строиться от 10 до 70 секунд")
+
+
+@bot.message_handler(commands=['info'])
+def help_message(message):
+    bot.send_message(message.chat.id, 'Примечание: чем кривая прогнозируемых осадков  выше среднегеометрического '
+                                      '(пунктирной линии),тем выше вероятность выпадения осадков, '
+                                      'и наоборот (при формировании графика осадков)')
+
+
+@bot.message_handler(commands=['about'])
+def about(message):
+    markup = types.InlineKeyboardMarkup()
+    btn_website = types.InlineKeyboardButton('GitHub', url='https://github.com/ezzzochek/project-DA')
+    btn_VK_ed = types.InlineKeyboardButton('VK Eduard', url='https://vk.com/gerasimenko_ed')
+    btn_VK_tim = types.InlineKeyboardButton('VK Tima', url='https://vk.com/hacoramik')
+
+    markup.add(btn_website, btn_VK_ed, btn_VK_tim)
+    bot.send_message(message.chat.id, 'Нажмите на кнопку, чтобы перейти на наши соцсети', reply_markup=markup)
+
+
+@bot.message_handler(func=lambda message: message.text == 'Анекдот')
+def about(message):
+    bot.send_message(message.chat.id, 'смешная шутка')
+    print('Отправил пасхалку')
 
 
 @bot.message_handler(func=lambda message: message.text == 'Хочу текст')
@@ -108,7 +135,7 @@ def test(message):
                          "Скорость ветра " + str(float(weather['wind']['speed'])) + "\n" +
                          "Давление " + str(round(float(weather['main']['pressure']) / 1.333, 1)) + "\n" +
                          "Влажность " + str(int(weather['main']['humidity'])) + "%" + "\n" +
-                         "Видимость " + str(weather['visibility']) + "\n" +
+                         # "Видимость " + str(weather['visibility']) + "\n" +
                          "Описание: " + str(weather['weather'][0]["description"]) + "\n\n" + status)
         keyboard = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
         button = types.KeyboardButton(text="Хочу текст")
@@ -249,7 +276,7 @@ def get_weather(message):
 
             elif param == "Осадки":
                 forecast_data = weather_data.rename(columns={"date": "ds"})
-                y_label = "Осадки, мм"
+                y_label = "Осадки, отн.  ед."
 
             elif param == "Давление":
                 forecast_data = weather_data.rename(columns={"date": "ds",
@@ -364,6 +391,8 @@ def get_weather(message):
                 button2 = types.KeyboardButton(text="Вернуться к выбору города")
                 keyboard.add(button, button1, button2)
                 bot.send_message(chat_id=message.chat.id,
+                                 text='Можете ввести город снова или заново определите режим работы')
+                bot.send_message(chat_id=message.chat.id,
                                  text='Можете ввести город снова или заново определите режим работы',
                                  reply_markup=keyboard)
                 print('~~~~~~~~~Отправил осадки~~~~~~~~~~~')
@@ -408,6 +437,6 @@ def get_weather(message):
         print('Я отправил ошибку, город введен неверно')
 
 
+
 # Запускаем бота
 bot.polling(none_stop=True)
-
