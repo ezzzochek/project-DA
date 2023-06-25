@@ -391,8 +391,6 @@ def get_weather(message):
                 button2 = types.KeyboardButton(text="Вернуться к выбору города")
                 keyboard.add(button, button1, button2)
                 bot.send_message(chat_id=message.chat.id,
-                                 text='Можете ввести город снова или заново определите режим работы')
-                bot.send_message(chat_id=message.chat.id,
                                  text='Можете ввести город снова или заново определите режим работы',
                                  reply_markup=keyboard)
                 print('~~~~~~~~~Отправил осадки~~~~~~~~~~~')
