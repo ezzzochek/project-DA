@@ -9,9 +9,9 @@ import requests
 import numpy as np
 
 # Ваш токен Telegram-бота
-TOKEN = '1628816265:AAGdCGQ5CyipLFU_fdKv8RvXZiq7N4CHQvQ'
+TOKEN = ''
 
-api_weather = '9e36367c58e9665759a2a78b30140f09'
+api_weather = ''
 url = 'http://api.openweathermap.org/data/2.5/weather'
 
 # Название файла с координатами городов
