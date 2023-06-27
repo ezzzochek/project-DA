@@ -9,9 +9,9 @@ import requests
 import numpy as np
 
 # Ваш токен Telegram-бота
-TOKEN = 'telegram_api'
+TOKEN = '1628816265:AAGdCGQ5CyipLFU_fdKv8RvXZiq7N4CHQvQ'
 
-api_weather = 'open_weather_api'
+api_weather = '9e36367c58e9665759a2a78b30140f09'
 url = 'http://api.openweathermap.org/data/2.5/weather'
 
 # Название файла с координатами городов
@@ -23,6 +23,9 @@ coordinates = pd.read_excel(COORDINATES_FILE_NAME)
 # Создаем список городов для выпадающего списка
 cities = list(coordinates['city'])
 
+# Создаем экземпляр бота
+bot = telebot.TeleBot(TOKEN)
+
 
 # Определяем функцию для получения координат выбранного города
 def get_location(city):
@@ -31,20 +34,17 @@ def get_location(city):
     return Point(row['latitude'], row['longitude'])
 
 
-# Создаем экземпляр бота
-bot = telebot.TeleBot(TOKEN)
-
-
 # Обработчик команды /start
 @bot.message_handler(commands=['start'])
 def start_message(message):
     keyboard = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     button1 = types.KeyboardButton(text="Хочу графики")
-    button2 = types.KeyboardButton(text="Хочу текст")
+    button2 = types.KeyboardButton(text="Хочу сводку")
     keyboard.add(button1, button2)
     bot.send_message(message.chat.id,
-                     "Привет! Для того, чтобы узнать функционал - напишите /help. "
-                     "\nВыберите в каком виде хотели бы получить данные:", reply_markup=keyboard)
+                     "Привет, я телеграмм-бот, основанный на ИИ. Моей задачей является выдавать предсказания о погоде! "
+                     "Если хочешь ознакомиться с моим функционалом, - напиши /help.\n"
+                     "Или же, выбери в каком виде ты хочешь получить данные:", reply_markup=keyboard)
 
 
 # Добавляем обработчик для кнопки "вернуться к выбору города"
@@ -65,17 +65,23 @@ def back_to_city(message):
 @bot.message_handler(commands=['help'])
 def help_message(message):
     bot.send_message(message.chat.id,
-                     "Если вы хотите использовать графики, то можно будет сформировать их только для городов России\n"
-                     "Если же вы хотите сделать информацию в виде текста, то сможете сделать это для почти любого "
-                     "населенного пункта мира\n\n"
-                     "~Графики могут строиться от 10 до 70 секунд")
+                     "Чтобы запусть бота, используйте кнопку 'меню' слева внизу, либо напишите /start.\n\n"
+                     "Если вы захотите воспользоваться прогнозами по графикам, то сформировать их можно будет "
+                     "только для городов России.\n"
+                     "Если вдруг захотите получить информацию о погоде на текущий момент в "
+                     "виде текста, то сможете сделать это для любого "
+                     "населенного пункта мира, хы.\n\n"
+                     "~~~Графики могут строиться в течение 10...60 секунд~~~")
 
 
 @bot.message_handler(commands=['info'])
 def help_message(message):
-    bot.send_message(message.chat.id, 'Примечание: чем кривая прогнозируемых осадков  выше среднегеометрического '
-                                      '(пунктирной линии),тем выше вероятность выпадения осадков, '
-                                      'и наоборот (при формировании графика осадков)')
+    bot.send_message(message.chat.id, 'Замечания для графика осадков:\n'
+                                      '1) чем длиннее прогнозируемый период, тем точнее предсказание;\n' 
+                                      '2) чем кривая прогнозируемых осадков выше среднегеометрического '
+                                      '(пунктирная линия), тем выше вероятность выпадения осадков в этот день, '
+                                      'и наоборот\n'
+                                      '3) предсказать осадки на завтрашний день невозможно :(')
 
 
 @bot.message_handler(commands=['about'])
@@ -83,10 +89,10 @@ def about(message):
     markup = types.InlineKeyboardMarkup()
     btn_website = types.InlineKeyboardButton('GitHub', url='https://github.com/ezzzochek/project-DA')
     btn_VK_ed = types.InlineKeyboardButton('VK Eduard', url='https://vk.com/gerasimenko_ed')
-    btn_VK_tim = types.InlineKeyboardButton('VK Tima', url='https://vk.com/hacoramik')
+    btn_VK_tim = types.InlineKeyboardButton('VK Timofey', url='https://vk.com/hacoramik')
 
     markup.add(btn_website, btn_VK_ed, btn_VK_tim)
-    bot.send_message(message.chat.id, 'Нажмите на кнопку, чтобы перейти на наши соцсети', reply_markup=markup)
+    bot.send_message(message.chat.id, 'Нажми на кнопку, чтобы перейти в соц. сеть', reply_markup=markup)
 
 
 @bot.message_handler(func=lambda message: message.text == 'Анекдот')
@@ -95,7 +101,7 @@ def about(message):
     print('Отправил пасхалку')
 
 
-@bot.message_handler(func=lambda message: message.text == 'Хочу текст')
+@bot.message_handler(func=lambda message: message.text == 'Хочу сводку')
 def for_test(message):
     # Создаем клавиатуру и настройки кнопок с городами
     keyboard = types.ReplyKeyboardMarkup(row_width=3, resize_keyboard=True)
@@ -109,51 +115,68 @@ def for_test(message):
     bot.register_next_step_handler(message, test)
 
 
-@bot.message_handler(func=lambda message: message.text == 'Хочу текст')
+# Добавь свои иконки для параметров
+def create_icon(param):
+    if param == 'temp':
+        return '🌡️'
+    elif param == 'wind':
+        return '🍃'
+    elif param == 'humidity':
+        return '💧'
+    elif param == 'pressure':
+        return '🧯'
+    elif param == 'distance':
+        return '🌎'
+    elif param == 'cloud':
+        return '🌤︎'
+    else:
+        return ''
+
+
+@bot.message_handler(func=lambda message: message.text == 'Хочу сводку')
 def test(message):
     city_name = message.text
     url = 'http://api.openweathermap.org/data/2.5/weather'
-
     try:
         params = {'APPID': api_weather, 'q': city_name, 'units': 'metric', 'lang': 'ru'}
         result = requests.get(url, params=params)
         weather = result.json()
 
         if weather["main"]['temp'] < 0:
-            status = "инфа"
+            status = "Жутко холодно, одевайся потеплее..."
         elif weather["main"]['temp'] < 10:
-            status = "инфа"
+            status = "На улице прохладно"
         elif weather["main"]['temp'] < 20:
-            status = "инфа"
+            status = "Погодка комфортик. Гулять самый кайф"
         elif weather["main"]['temp'] > 30:
-            status = "инфа"
+            status = "Адовая жара, пора на море!"
         else:
-            status = "Сейчас отличная температура!\nнаверное\n"
+            status = "Сейчас отличная температура!\nНаверное, но это не точно\n"
 
-        bot.send_message(message.chat.id, "В городе " + str(weather["name"]) + " температура " + str(
-            float(weather["main"]['temp'])) + "\n" +
-                         "Скорость ветра " + str(float(weather['wind']['speed'])) + "\n" +
-                         "Давление " + str(round(float(weather['main']['pressure']) / 1.333, 1)) + "\n" +
-                         "Влажность " + str(int(weather['main']['humidity'])) + "%" + "\n" +
-                         # "Видимость " + str(weather['visibility']) + "\n" +
-                         "Описание: " + str(weather['weather'][0]["description"]) + "\n\n" + status)
+        bot.send_message(message.chat.id, "Сейчас в городе " + str(weather["name"]) + ":\n" +
+                         create_icon('temp') + "Температура воздуха " + str(float(weather["main"]['temp'])) + " °C" + "\n" +
+                         create_icon('wind') + "Скорость ветра " + str(float(weather['wind']['speed'])) +  " м/с" + "\n" +
+                         create_icon('pressure') + "Давление " + str(round(float(weather['main']['pressure']) / 1.333, 1)) + " мм рт. ст." +  "\n" +
+                         create_icon('humidity') + "Влажность " + str(int(weather['main']['humidity'])) + "%" + "\n" +
+                         create_icon('distance') + "Видимость " + str(weather['visibility'] / 1000) + " км" + "\n" +
+                         create_icon('cloud') + "Описание: " + str(weather['weather'][0]["description"]) + "\n\n" + status)
         keyboard = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-        button = types.KeyboardButton(text="Хочу текст")
+        button = types.KeyboardButton(text="Хочу сводку")
         button1 = types.KeyboardButton(text="Хочу графики")
         button2 = types.KeyboardButton(text="Вернуться к выбору города")
         keyboard.add(button, button1, button2)
-        bot.send_message(chat_id=message.chat.id, text='Можете ввести город снова или заново определите режим работы',
+        bot.send_message(chat_id=message.chat.id, text='Можете снова ввести город или переопределить режим работы',
                          reply_markup=keyboard)
         print('Я отправил текст с погодой на сегодня')
 
     except:
         bot.send_message(message.chat.id, "Город " + city_name + " не найден")
         keyboard = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-        button = types.KeyboardButton(text="Хочу текст")
+        button = types.KeyboardButton(text="Хочу сводку")
         button1 = types.KeyboardButton(text="Хочу графики")
         button2 = types.KeyboardButton(text="Вернуться к выбору города")
         keyboard.add(button, button1, button2)
-        bot.send_message(chat_id=message.chat.id, text='Можете ввести город снова или заново определите режим работы',
+        bot.send_message(chat_id=message.chat.id, text='Можете снова ввести город или переопределить режим работы',
                          reply_markup=keyboard)
         print('Я отправил ошибку, город введен неверно')
 
@@ -184,7 +207,7 @@ def choose_city(message):
         return
 
     # Создаем клавиатуру и настройки кнопок
-    keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
+    keyboard = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     button1 = types.KeyboardButton(text="Температура")
     button2 = types.KeyboardButton(text="Осадки")
     button3 = types.KeyboardButton(text="Давление")
@@ -193,7 +216,6 @@ def choose_city(message):
 
     # Отправляем сообщение с выбором параметра и клавиатурой
     bot.send_message(message.chat.id, "Выберите параметр:", reply_markup=keyboard)
-
     # Регистрируем обработчик нажатия на кнопки параметра
     bot.register_next_step_handler(message, choose_param)
 
@@ -222,8 +244,7 @@ def choose_param(message):
         keyboard.add(button, button1, button2, button3, button4, button5, button6, button7)
 
         # Отправляем сообщение с выбором периода и клавиатурой
-        bot.send_message(message.chat.id, f"Выбери период для {param}:", reply_markup=keyboard)
-
+        bot.send_message(message.chat.id, f"Выбери период для параметра <{param}>:", reply_markup=keyboard)
         # Регистрируем обработчик нажатия на кнопки периода
         bot.register_next_step_handler(message, get_weather)
 
@@ -281,7 +302,7 @@ def get_weather(message):
             elif param == "Давление":
                 forecast_data = weather_data.rename(columns={"date": "ds",
                                                              "pres": "y"})
-                y_label = "Давление, мм. рт. ст."
+                y_label = "Давление, мм рт. ст."
 
             if param == 'Температура':
                 # Инициализируем прогнозную модель для tmin
@@ -352,17 +373,16 @@ def get_weather(message):
                 bot.send_photo(chat_id=message.chat.id,
                                photo=fig.to_image(format='png'))  # Отправляем график пользователю
                 keyboard = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-                button = types.KeyboardButton(text="Хочу текст")
+                button = types.KeyboardButton(text="Хочу сводку")
                 button1 = types.KeyboardButton(text="Хочу графики")
                 button2 = types.KeyboardButton(text="Вернуться к выбору города")
                 keyboard.add(button, button1, button2)
                 bot.send_message(chat_id=message.chat.id,
-                                 text='Можете ввести город снова или заново определите режим работы',
+                                 text='Можете снова ввести город или переопределить режим работы',
                                  reply_markup=keyboard)
 
                 print('~~~~~~~~~Отправил температуру~~~~~~~~~~~')
-                # Отображение графика
-                # fig.show()
+
             elif param == 'Осадки':
                 # Получаем прогноз
                 future_prcp = model_prcp.predict(pd.DataFrame({"ds": future_dates}))
@@ -381,59 +401,56 @@ def get_weather(message):
                 fig.add_shape(type='line', x0=future_dates[0], y0=mean_geo,
                               x1=future_dates[-1], y1=mean_geo,
                               line=dict(color='red', width=2, dash='dot'))
-
+                # Отправляем график пользователю
                 bot.send_photo(chat_id=message.chat.id,
-                               photo=fig.to_image(format='png'))  # Отправляем график пользователю
+                               photo=fig.to_image(format='png'))
 
                 keyboard = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-                button = types.KeyboardButton(text="Хочу текст")
+                button = types.KeyboardButton(text="Хочу сводку")
                 button1 = types.KeyboardButton(text="Хочу графики")
                 button2 = types.KeyboardButton(text="Вернуться к выбору города")
                 keyboard.add(button, button1, button2)
                 bot.send_message(chat_id=message.chat.id,
-                                 text='Можете ввести город снова или заново определите режим работы',
+                                 text='Можете снова ввести город или переопределить режим работы',
                                  reply_markup=keyboard)
                 print('~~~~~~~~~Отправил осадки~~~~~~~~~~~')
+
             elif param == 'Давление':
                 # Получаем прогноз
                 future = model.predict(pd.DataFrame({"ds": future_dates}))
                 # Рисуем график с историческими данными и прогнозом
                 fig = go.Figure()
                 # fig.add_trace(go.Scatter(x=weather_data.index, y=parameter.values, name='Исторические данные'))
-                fig.add_trace(go.Scatter(x=future_dates, y=future['yhat'] / 1.333, name='Прогноз'))
+                fig.add_trace(go.Scatter(x=future_dates, y=round(future['yhat'] / 1.333, 1), name='Прогноз'))
                 fig.update_layout(title=f"{param} в {city} {period}", xaxis_title="Дата", yaxis_title=y_label)
                 fig.update_xaxes(range=[datetime.now() - timedelta(days=1), end_date])
                 bot.send_photo(chat_id=message.chat.id,
                                photo=fig.to_image(format='png'))  # Отправляем график пользователю
                 keyboard = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-                button = types.KeyboardButton(text="Хочу текст")
+                button = types.KeyboardButton(text="Хочу сводку")
                 button1 = types.KeyboardButton(text="Хочу графики")
                 button2 = types.KeyboardButton(text="Вернуться к выбору города")
                 keyboard.add(button, button1, button2)
-                bot.send_message(chat_id=message.chat.id, text='Можете ввести город снова или заново '
-                                                               'определите режим работы', reply_markup=keyboard)
+                bot.send_message(chat_id=message.chat.id, text='Можете снова ввести город'
+                                                               'или переопределить режим работы', reply_markup=keyboard)
                 print('~~~~~~~~~Отправил давление~~~~~~~~~~~')
 
         else:
-            bot.send_message(message.chat.id, "Некорректный ввод. Введите название города заново:")
+            bot.send_message(message.chat.id, "Некорректный ввод. Введите город заново:")
             print('Город ввели неверно')
     except:
-        # bot.send_message(message.chat.id, "Для прогнозирования погоды для города" + city + "недостаточно данных:(.\n"
-        #                                                                                   "Пожалуйста, выберите "
-        #                                                                                   "другой город")
         keyboard = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-        button = types.KeyboardButton(text="Хочу текст")
+        button = types.KeyboardButton(text="Хочу сводку")
         button1 = types.KeyboardButton(text="Хочу графики")
         button2 = types.KeyboardButton(text="Вернуться к выбору города")
         keyboard.add(button, button1, button2)
-        bot.send_message(chat_id=message.chat.id, text="Для прогнозирования погоды города " + city + " недостаточно"
-                                                                                                     " данных:(.\n"
-                                                                                                     "Пожалуйста, "
-                                                                                                     "выберите "
-                                                                                                     "другой город",
+        bot.send_message(chat_id=message.chat.id, text="Для прогнозирования погоды в городе " + city + " недостаточно"
+                                                                                                       " данных :(. "
+                                                                                                       "Пожалуйста, "
+                                                                                                       "выбери "
+                                                                                                       "другой город.",
                          reply_markup=keyboard)
         print('Я отправил ошибку, город введен неверно')
-
 
 
 # Запускаем бота
